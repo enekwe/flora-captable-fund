@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -5,6 +7,24 @@ const mongoose = require('mongoose');
 const winston = require('winston');
 const Bull = require('bull');
 const redis = require('redis');
+
+// Validate required environment variables
+const validateEnvironment = () => {
+  const required = ['ENCRYPTION_KEY', 'JWT_SECRET', 'SESSION_SECRET'];
+  const missing = required.filter(key => !process.env[key]);
+
+  if (missing.length > 0 && process.env.NODE_ENV === 'production') {
+    console.error(`FATAL: Missing required environment variables: ${missing.join(', ')}`);
+    console.error('Please set these variables before starting the service.');
+    process.exit(1);
+  } else if (missing.length > 0) {
+    console.warn(`WARNING: Missing environment variables: ${missing.join(', ')}`);
+    console.warn('Using development defaults - NOT SAFE FOR PRODUCTION');
+  }
+};
+
+// Validate environment on startup
+validateEnvironment();
 
 // Logger setup
 const logger = winston.createLogger({
@@ -23,9 +43,18 @@ const PORT = process.env.PORT || 3003;
 
 // Middleware
 app.use(helmet());
+
+// Configure CORS properly
+const corsOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
+  : process.env.NODE_ENV === 'production'
+    ? false // Deny all in production if not configured
+    : ['http://localhost:3000', 'http://localhost:5173']; // Development defaults
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN?.split(',') || '*',
-  credentials: true
+  origin: corsOrigins,
+  credentials: true,
+  maxAge: 86400
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

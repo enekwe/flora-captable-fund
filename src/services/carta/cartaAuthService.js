@@ -215,7 +215,10 @@ class CartaAuthService {
    */
   encryptData(data) {
     const algorithm = 'aes-256-cbc';
-    const key = Buffer.from(process.env.ENCRYPTION_KEY || 'default-key-change-in-production', 'utf8').slice(0, 32);
+    if (!process.env.ENCRYPTION_KEY) {
+      throw new Error('ENCRYPTION_KEY environment variable is required for secure token storage');
+    }
+    const key = Buffer.from(process.env.ENCRYPTION_KEY, 'utf8').slice(0, 32);
     const iv = crypto.randomBytes(16);
 
     const cipher = crypto.createCipheriv(algorithm, key, iv);
@@ -232,7 +235,10 @@ class CartaAuthService {
    */
   decryptData(encryptedData) {
     const algorithm = 'aes-256-cbc';
-    const key = Buffer.from(process.env.ENCRYPTION_KEY || 'default-key-change-in-production', 'utf8').slice(0, 32);
+    if (!process.env.ENCRYPTION_KEY) {
+      throw new Error('ENCRYPTION_KEY environment variable is required for secure token storage');
+    }
+    const key = Buffer.from(process.env.ENCRYPTION_KEY, 'utf8').slice(0, 32);
 
     const parts = encryptedData.split(':');
     const iv = Buffer.from(parts[0], 'hex');
